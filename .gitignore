@@ -1,0 +1,13 @@
+.DS_Store
+
+**/bin/
+**/obj/
+
+**/node_modules/
+**/dist/
+**/.angular/
+
+.env
+*.user
+.idea/
+.vscode/

@@ -1,0 +1,32 @@
+<nav class="flex items-center justify-between border-b border-slate-200 bg-white px-7 py-3.5">
+  <a routerLink="/machines" class="text-base font-bold text-slate-950 no-underline">MES Equipment</a>
+
+  <div class="flex items-center gap-3">
+    @if (authService.isLoggedIn()) {
+      <a
+        routerLink="/machines"
+        class="rounded-md px-3 py-2 text-sm font-semibold text-blue-800 no-underline hover:bg-blue-50"
+      >
+        Machines
+      </a>
+      <button
+        type="button"
+        class="rounded-md bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200"
+        (click)="logout()"
+      >
+        Logout
+      </button>
+    } @else {
+      <a
+        routerLink="/login"
+        class="rounded-md px-3 py-2 text-sm font-semibold text-blue-800 no-underline hover:bg-blue-50"
+      >
+        Login
+      </a>
+    }
+  </div>
+</nav>
+
+<main class="min-h-[calc(100vh-57px)] bg-linear-to-b from-slate-50 to-slate-100">
+  <router-outlet></router-outlet>
+</main>

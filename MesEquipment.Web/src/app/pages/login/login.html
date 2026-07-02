@@ -1,0 +1,29 @@
+<section class="login-page">
+  <form class="login-card" (ngSubmit)="login()">
+    <p class="eyebrow">MES Equipment</p>
+    <h1>Sign in</h1>
+
+    <label>
+      Username
+      <input name="username" [(ngModel)]="username" required />
+    </label>
+
+    <label>
+      Password
+      <input
+        name="password"
+        type="password"
+        [(ngModel)]="password"
+        placeholder="password"
+        required
+      />
+    </label>
+    @if (errorMessage()) {
+      <p class="error">{{ errorMessage() }}</p>
+    }
+
+    <button type="submit" [disabled]="loading()">
+      {{ loading() ? 'Signing in...' : 'Sign in' }}
+    </button>
+  </form>
+</section>

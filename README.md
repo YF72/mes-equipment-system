@@ -6,6 +6,8 @@ The project started as a Version 1 MVP for machine CRUD, JWT login, status logs,
 Angular UI, and NgRx list loading. Version 2 focuses on making the MVP closer to
 a practical internal management system by improving authentication,
 configuration, validation, error handling, list querying, and frontend auth flow.
+Version 3 focuses on engineering quality, starting with backend service tests
+for core MachineService behaviors and regression coverage for status transition logging.
 
 ## Features
 
@@ -22,6 +24,7 @@ configuration, validation, error handling, list querying, and frontend auth flow
 - Loading, success, and error feedback in the frontend
 - MySQL database with Docker Compose
 - Swagger API testing
+- Backend service tests for core MachineService behaviors
 
 ## Tech Stack
 
@@ -52,8 +55,10 @@ configuration, validation, error handling, list querying, and frontend auth flow
 
 ```text
 project-root/
+  MesEquipment.sln
   backend/
     MesEquipment.Api/
+    MesEquipment.Api.Tests/
   docker-compose.yml
   MesEquipment.Web/
 ```
@@ -142,6 +147,33 @@ Version 2 turns the original MVP into a more practical portfolio project:
 - Added 401 handling in the auth interceptor
 - Added frontend operation loading, success, and error feedback
 - Cleaned up template code and project documentation
+
+## Testing
+
+The backend includes service-level tests for `MachineService`.
+
+Covered behaviors:
+
+- pagination
+- keyword search
+- status filtering
+- create machine
+- get machine by id
+- delete machine
+- status transition logging
+
+Run all .NET tests:
+
+```bash
+dotnet test MesEquipment.sln
+```
+
+The service tests use EF Core InMemory database, so they can run without MySQL or Docker.
+
+During Version 3, a regression test was added for machine status transitions.
+The test caught a bug where `MachineStatusLog` was created but not persisted to
+the database. The service was updated to persist the status log when a machine
+status changes.
 
 ## API Overview
 

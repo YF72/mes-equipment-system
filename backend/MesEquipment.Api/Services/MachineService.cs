@@ -122,6 +122,8 @@ public class MachineService : IMachineService
                 ChangedAt = DateTime.UtcNow,
                 Note = "Status changed from " + oldStatus + " to " + dto.Status,
             };
+            
+            _context.MachineStatusLogs.Add(statusLog);
         }
         
         await _context.SaveChangesAsync();

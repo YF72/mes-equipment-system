@@ -12,13 +12,6 @@ const string corsPolicyName = "AllowAngularApp";
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-var jwtKey = builder.Configuration["Jwt:Key"];
-
-if (string.IsNullOrWhiteSpace(jwtKey))
-{
-    throw new InvalidOperationException("JWT key is not configured.");
-}
-
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddControllers();
@@ -45,6 +38,12 @@ builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        var jwtKey = builder.Configuration["Jwt:Key"];
+
+        if (string.IsNullOrWhiteSpace(jwtKey))
+        {
+            throw new InvalidOperationException("JWT key is not configured.");
+        }
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -84,3 +83,5 @@ app.UseAuthorization(); // 再判斷你能不能進這個 API
 app.MapControllers();
 
 app.Run();
+
+public partial class Program { }

@@ -168,12 +168,20 @@ Run all .NET tests:
 dotnet test MesEquipment.sln
 ```
 
-The service tests use EF Core InMemory database, so they can run without MySQL or Docker.
-
+The service tests use the EF Core InMemory database, so they can run without MySQL or Docker.
 During Version 3, a regression test was added for machine status transitions.
-The test caught a bug where `MachineStatusLog` was created but not persisted to
+The test caught a bug where MachineStatusLog was created but not persisted to
 the database. The service was updated to persist the status log when a machine
 status changes.
+The backend also includes API integration tests using WebApplicationFactory.
+Covered API behaviors:
+
+- protected machine endpoints return 401 without a JWT
+- login returns a JWT token for valid credentials
+- authorized machine list requests return paged data
+- invalid machine DTOs return 400 Bad Request through ASP.NET Core validation
+  The integration tests replace the MySQL DbContext configuration with the EF Core
+  InMemory database and use test-specific JWT settings.
 
 ## API Overview
 

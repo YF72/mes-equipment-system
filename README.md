@@ -1,13 +1,15 @@
 # MES Equipment Management System
 
-A learning-focused full-stack portfolio project for MES equipment management.
+[![CI](https://github.com/YF72/mes-equipment-system/actions/workflows/ci.yml/badge.svg)](https://github.com/YF72/mes-equipment-system/actions/workflows/ci.yml)
 
-The project started as a Version 1 MVP for machine CRUD, JWT login, status logs,
-Angular UI, and NgRx list loading. Version 2 focuses on making the MVP closer to
-a practical internal management system by improving authentication,
-configuration, validation, error handling, list querying, and frontend auth flow.
-Version 3 focuses on engineering quality, starting with backend service tests
-for core MachineService behaviors and regression coverage for status transition logging.
+A full-stack MES equipment management system built to demonstrate pragmatic architecture evolution from MVP features to production-oriented engineering practices.
+
+The system manages equipment records, machine status history, JWT-based authentication,
+and an Angular management UI with NgRx-driven list state. The project has evolved
+from core CRUD workflows into a more production-oriented architecture with
+database-backed authentication, password hashing, DTO validation, global error
+handling, paginated querying, route guards, automated backend tests, API
+integration tests, and GitHub Actions CI.
 
 ## Features
 
@@ -182,6 +184,17 @@ Covered API behaviors:
 - invalid machine DTOs return 400 Bad Request through ASP.NET Core validation
   The integration tests replace the MySQL DbContext configuration with the EF Core
   InMemory database and use test-specific JWT settings.
+
+## CI
+
+This project uses GitHub Actions to run backend tests and frontend builds on
+pushes and pull requests to `main`.
+
+CI checks:
+
+- backend restore, build, and test
+- frontend dependency installation with `npm ci`
+- frontend production build
 
 ## API Overview
 

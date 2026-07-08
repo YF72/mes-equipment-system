@@ -7,6 +7,8 @@ using Microsoft.IdentityModel.Tokens;
 using MesEquipment.Api.Models;
 using Microsoft.AspNetCore.Identity;
 using MesEquipment.Api.Middleware;
+using Microsoft.AspNetCore.Mvc.Controllers;
+
 var builder = WebApplication.CreateBuilder(args);
 const string corsPolicyName = "AllowAngularApp";
 
@@ -59,7 +61,18 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.CustomOperationIds(apiDescription =>
+    {
+        if (apiDescription.ActionDescriptor is ControllerActionDescriptor actionDescriptor)
+        {
+            return $"{actionDescriptor.ControllerName}_{actionDescriptor.ActionName}";
+        }
+
+        return null;
+    });
+});
 
 var app = builder.Build();
 

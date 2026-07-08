@@ -8,6 +8,7 @@ import { provideStore } from '@ngrx/store';
 import { machineFeatureKey, machineReducer } from './store/machines/machine.reducer';
 import { provideEffects } from '@ngrx/effects';
 import { MachineEffects } from './store/machines/machine.effects';
+import { API_BASE_URL, AuthClient, MachinesClient } from './api/mes-equipment-api';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -22,5 +23,8 @@ export const appConfig: ApplicationConfig = {
       maxAge: 25,
       logOnly: !isDevMode(),
     }),
+    { provide: API_BASE_URL, useValue: 'http://localhost:5264' },
+    AuthClient,
+    MachinesClient,
   ],
 };

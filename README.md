@@ -27,6 +27,9 @@ integration tests, and GitHub Actions CI.
 - MySQL database with Docker Compose
 - Swagger API testing
 - Backend service tests for core MachineService behaviors
+- OpenAPI contract-based Angular API client generation with NSwag
+- Application-level service adapter around generated API clients
+- DTO mapper layer to isolate generated API contracts from frontend app models
 
 ## Tech Stack
 
@@ -40,6 +43,7 @@ integration tests, and GitHub Actions CI.
 - Swagger
 - DTO + Service layer
 - .NET User Secrets for local development secrets
+- NSwag for OpenAPI TypeScript client generation
 
 ### Frontend
 
@@ -52,6 +56,7 @@ integration tests, and GitHub Actions CI.
 - Tailwind CSS
 - Functional HTTP interceptor
 - Route guards
+- Generated Angular API client from backend OpenAPI contract
 
 ## Project Structure
 
@@ -109,6 +114,36 @@ Swagger:
 ```text
 http://localhost:5264/swagger
 ```
+
+### Generate Angular API Client
+
+The Angular API client is generated from the backend Swagger/OpenAPI contract with NSwag.
+
+Start the backend first:
+
+```bash
+cd backend/MesEquipment.Api
+dotnet run
+```
+
+Then generate the frontend client from the project root:
+
+```bash
+dotnet tool restore
+dotnet tool run nswag run nswag.json
+```
+
+Generated file:
+
+```text
+MesEquipment.Web/src/app/api/mes-equipment-api.ts
+```
+
+The generated client is wrapped by `MachineService`, and DTO conversion is kept in
+`machine-api.mapper.ts` so the Angular app does not depend directly on generated DTOs.
+
+The generated file should not be edited manually. Update the backend OpenAPI contract
+or `nswag.json`, then regenerate the client.
 
 ### 5. Run Frontend
 

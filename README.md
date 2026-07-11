@@ -74,13 +74,43 @@ project-root/
 
 ### 1. Start MySQL
 
-From the project root:
+The project uses Docker Compose to run MySQL for local development. Docker Compose
+provides local defaults, and values can be overridden with a local `.env` file.
+
+Create a local `.env` file from the example:
+
+```bash
+cp .env.example .env
+```
+
+Start MySQL:
 
 ```bash
 docker compose up -d
 ```
 
-MySQL runs on local port `3307`.
+Check container health:
+
+```bash
+docker ps
+```
+
+The MySQL container should show `healthy`.
+
+MySQL runs on local port `3307` by default.
+
+Local defaults are defined in `.env.example`:
+
+```text
+MYSQL_DATABASE=mes_equipment_db
+MYSQL_USER=mes_user
+MYSQL_PASSWORD=mes_password
+MYSQL_PORT=3307
+```
+
+These defaults are for local development only. Production-like deployments should
+provide secrets explicitly through environment variables, CI/CD secrets, or a
+secret manager.
 
 ### 2. Configure Backend Secrets
 

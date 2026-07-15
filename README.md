@@ -1,164 +1,213 @@
 # MES Equipment Management System
 
 [![CI](https://github.com/YF72/mes-equipment-system/actions/workflows/ci.yml/badge.svg)](https://github.com/YF72/mes-equipment-system/actions/workflows/ci.yml)
+![.NET](https://img.shields.io/badge/.NET-9-512BD4?logo=dotnet&logoColor=white)
+![Angular](https://img.shields.io/badge/Angular-21.2-DD0031?logo=angular&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)
+![NgRx](https://img.shields.io/badge/NgRx-21.1-BA2BD2?logo=redux&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-8.4-4479A1?logo=mysql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 
-A full-stack MES equipment management system built to demonstrate pragmatic architecture evolution from MVP features to production-oriented engineering practices.
+A portfolio-scale full-stack MES equipment management system built with ASP.NET Core, Angular, and MySQL for tracking machines, operational status, and status-change history in an internal MES-style workflow.
 
-The system manages equipment records, machine status history, JWT-based authentication,
-and an Angular management UI with NgRx-driven list state. The project has evolved
-from core CRUD workflows into a more production-oriented architecture with
-database-backed authentication, password hashing, DTO validation, global error
-handling, paginated querying, route guards, automated backend tests, API
-integration tests, and GitHub Actions CI.
+The project goes beyond CRUD by focusing on the boundaries that keep a full-stack application maintainable: DTO-based API contracts, generated client isolation, database-backed authentication, server-side querying, centralized error handling, automated tests, and continuous integration.
 
-## Features
+The backend OpenAPI contract generates the Angular API client through NSwag. After regenerating the client and running the Angular build, DTO changes surface as TypeScript compile-time feedback instead of remaining as silent runtime mismatches. Generated transport types remain behind a frontend service adapter and mapper, while the rest of the Angular application works with its own models.
 
-- Machine CRUD management
-- Machine status history logs
-- Database-backed JWT login
-- Password hashing for user credentials
-- Local JWT configuration with .NET User Secrets
-- DTO validation for API request boundaries
-- Global error handling with ProblemDetails
-- Pagination, search, and status filtering for machine list
-- Angular route guards and functional auth interceptor
-- NgRx Store / Effects / Selectors for machine list state
-- Loading, success, and error feedback in the frontend
-- MySQL database with Docker Compose
-- Swagger API testing
-- Backend service tests for core MachineService behaviors
-- OpenAPI contract-based Angular API client generation with NSwag
-- Application-level service adapter around generated API clients
-- DTO mapper layer to isolate generated API contracts from frontend app models
+## Table of Contents
+
+- [Engineering Highlights](#engineering-highlights)
+- [Screenshots](#screenshots)
+- [Tech Stack](#tech-stack)
+- [Architecture](#architecture)
+- [Request Flow](#request-flow)
+- [Local Setup](#local-setup)
+- [Demo Account](#demo-account)
+- [API Overview](#api-overview)
+- [Testing](#testing)
+- [Continuous Integration](#continuous-integration)
+- [Design Decisions](#design-decisions)
+- [Project Structure](#project-structure)
+- [Demo Script](#demo-script)
+- [Engineering Scope](#engineering-scope)
+
+## Engineering Highlights
+
+- **Equipment workflows** — machine CRUD, server-side pagination, keyword search, status filtering, and per-machine status history
+- **Contract-driven integration** — Angular API client generated from the live backend OpenAPI contract with NSwag
+- **Clear frontend boundary** — generated clients are wrapped by `MachineService`, while `machine-api.mapper.ts` converts transport DTOs into application models
+- **Database-backed authentication** — JWT login with hashed passwords, protected API endpoints, route guards, and centralized frontend 401 handling
+- **Consistent API behavior** — DTO validation at the request boundary and unhandled exceptions returned as `ProblemDetails`
+- **Automated verification** — service-level tests, API integration tests through `WebApplicationFactory`, and GitHub Actions on every push and pull request
+
+Machine status history is recorded only when the status actually changes. Updating another field does not create a duplicate `MachineStatusLog` entry.
+
+## Screenshots
+
+### Machine Management UI
+
+![Machine Management UI](docs/images/machine-management.png)
+
+### Swagger API Contract
+
+![Swagger API Contract](docs/images/swagger-api.png)
+
+### GitHub Actions CI
+
+![GitHub Actions CI](docs/images/github-actions-ci.png)
 
 ## Tech Stack
 
-### Backend
+| Layer | Technologies |
+|---|---|
+| Backend | .NET 9, ASP.NET Core Web API, C#, Entity Framework Core 9, MySQL 8.4 through Pomelo |
+| Authentication | JWT Bearer authentication, `PasswordHasher<User>`, .NET User Secrets |
+| API | DTO and Service layers, DataAnnotations validation, `ProblemDetails`, Swagger/OpenAPI, NSwag 14 |
+| Frontend | Angular 21.2, TypeScript 5.9, NgRx 21.1, Angular Signals, Reactive Forms, Tailwind CSS 4 |
+| Testing | xUnit, EF Core InMemory provider, `WebApplicationFactory` |
+| Infrastructure | Docker Compose, GitHub Actions |
 
-- ASP.NET Core Web API
-- Entity Framework Core
-- MySQL
-- Docker Compose
-- JWT Authentication
-- Swagger
-- DTO + Service layer
-- .NET User Secrets for local development secrets
-- NSwag for OpenAPI TypeScript client generation
+## Architecture
 
-### Frontend
+```mermaid
+flowchart LR
+    UI[Angular UI] --> Store[NgRx Store]
+    Store --> Effects[NgRx Effects]
+    Effects --> MachineAdapter[MachineService adapter]
 
-- Angular 21
-- TypeScript
-- NgRx 21
-- RxJS
-- Signals
-- Reactive Forms
-- Tailwind CSS
-- Functional HTTP interceptor
-- Route guards
-- Generated Angular API client from backend OpenAPI contract
+    UI --> AuthService[AuthService]
 
-## Project Structure
+    MachineAdapter --> Mapper[machine-api.mapper.ts]
+    Mapper --> MachinesClient[NSwag MachinesClient]
+    MachinesClient --> Interceptor[Auth interceptor]
+    Interceptor --> MachinesAPI[MachinesController]
+
+    AuthService -- HttpClient --> AuthAPI[AuthController]
+
+    MachinesAPI --> MachineService[Backend MachineService]
+    MachineService --> EF[Entity Framework Core]
+    AuthAPI --> EF
+    EF --> MySQL[(MySQL)]
+
+    MachinesAPI --> ErrorMiddleware[Exception middleware]
+    AuthAPI --> ErrorMiddleware
+```
+
+NSwag generates `AuthClient` and `MachinesClient` from the backend OpenAPI contract. The machine workflow uses `MachinesClient` through a frontend `MachineService` adapter. `machine-api.mapper.ts` converts generated request and response types into the application's `Machine` model, keeping generated code out of components and NgRx effects.
+
+Authentication remains intentionally simpler. `AuthService` sends the login request through Angular `HttpClient` because login is a single request-response operation with no shared query state to coordinate.
+
+NgRx manages the machine-list query state: page, page size, keyword, status filter, loading state, error state, and returned records. Create, update, and delete are one-off operations. The component calls `MachineService`, uses Signals for local operation feedback, and reloads the list after success. This keeps shared query behavior centralized without routing every local mutation through additional actions and effects.
+
+## Request Flow
+
+A machine-list request follows this path:
 
 ```text
-project-root/
-  MesEquipment.sln
-  backend/
-    MesEquipment.Api/
-    MesEquipment.Api.Tests/
-  docker-compose.yml
-  MesEquipment.Web/
+Angular component
+    ↓ dispatches load action
+NgRx effect
+    ↓
+Frontend MachineService adapter
+    ↓
+machine-api.mapper.ts
+    ↓
+NSwag-generated MachinesClient
+    ↓ HTTP
+MachinesController
+    ↓
+Backend MachineService
+    ↓
+Entity Framework Core
+    ↓
+MySQL
 ```
+
+The response returns through the same boundary, is mapped into frontend application models, stored in NgRx, and rendered by the Angular UI.
 
 ## Local Setup
 
-### 1. Start MySQL
+### Prerequisites
 
-The project uses Docker Compose to run MySQL for local development. Docker Compose
-provides local defaults, and values can be overridden with a local `.env` file.
+- .NET SDK
+- Node.js and npm
+- Docker Desktop
+- EF Core CLI tools
 
-Create a local `.env` file from the example:
+Install the EF Core CLI if it is not already available:
+
+```bash
+dotnet tool install --global dotnet-ef
+```
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/YF72/mes-equipment-system.git
+cd mes-equipment-system
+```
+
+### 2. Start MySQL
+
+Create a local environment file from the example:
 
 ```bash
 cp .env.example .env
 ```
 
-Start MySQL:
+Start the database:
 
 ```bash
 docker compose up -d
-```
-
-Check container health:
-
-```bash
 docker ps
 ```
 
-The MySQL container should show `healthy`.
+Wait until the MySQL container reports `healthy`.
 
-MySQL runs on local port `3307` by default.
-
-Local defaults are defined in `.env.example`:
+The default local configuration is:
 
 ```text
-MYSQL_DATABASE=mes_equipment_db
-MYSQL_USER=mes_user
-MYSQL_PASSWORD=mes_password
-MYSQL_PORT=3307
+Root password: root_password
+Database:      mes_equipment_db
+User:          mes_user
+Password:      mes_password
+Port:          3307
 ```
 
-These defaults are for local development only. Production-like deployments should
-provide secrets explicitly through environment variables, CI/CD secrets, or a
-secret manager.
+These values are local-development defaults and can be overridden in `.env`.
 
-### 2. Configure Backend Secrets
+### 3. Configure backend secrets
 
 ```bash
 cd backend/MesEquipment.Api
+
 dotnet user-secrets init
 dotnet user-secrets set "Jwt:Key" "your-development-secret-key-at-least-32-characters"
 dotnet user-secrets set "Jwt:Issuer" "MesEquipment.Api"
 dotnet user-secrets set "Jwt:Audience" "MesEquipment.Web"
 ```
 
-`Jwt:Key` should not be committed to source control. In production, this would
-usually come from environment variables, CI/CD secrets, or a secret manager.
+The JWT signing key is intentionally kept out of `appsettings.json`. A production environment should provide JWT and database credentials through environment variables or a secret manager.
 
-### 3. Update Database
+### 4. Apply migrations and run the API
 
 ```bash
-cd backend/MesEquipment.Api
 dotnet ef database update
-```
-
-### 4. Run Backend API
-
-```bash
-cd backend/MesEquipment.Api
 dotnet run
 ```
-
-Swagger:
 
 ```text
-http://localhost:5264/swagger
+API:     http://localhost:5264
+Swagger: http://localhost:5264/swagger
 ```
 
-### Generate Angular API Client
+### 5. Generate the Angular API client
 
-The Angular API client is generated from the backend Swagger/OpenAPI contract with NSwag.
-
-Start the backend first:
+Keep the backend running. From the repository root:
 
 ```bash
-cd backend/MesEquipment.Api
-dotnet run
-```
+cd ../..
 
-Then generate the frontend client from the project root:
-
-```bash
 dotnet tool restore
 dotnet tool run nswag run nswag.json
 ```
@@ -169,13 +218,9 @@ Generated file:
 MesEquipment.Web/src/app/api/mes-equipment-api.ts
 ```
 
-The generated client is wrapped by `MachineService`, and DTO conversion is kept in
-`machine-api.mapper.ts` so the Angular app does not depend directly on generated DTOs.
+Do not edit the generated file manually. Change the backend contract or `nswag.json`, then regenerate the client.
 
-The generated file should not be edited manually. Update the backend OpenAPI contract
-or `nswag.json`, then regenerate the client.
-
-### 5. Run Frontend
+### 6. Run the frontend
 
 ```bash
 cd MesEquipment.Web
@@ -183,10 +228,8 @@ npm install
 npm start
 ```
 
-Frontend:
-
 ```text
-http://localhost:4200
+App: http://localhost:4200
 ```
 
 ## Demo Account
@@ -196,105 +239,191 @@ Username: admin
 Password: password
 ```
 
-The demo admin account is seeded only for local development.
+`DbSeeder` creates the demo account on startup in the Development environment. Public registration is intentionally excluded because this project models an internal MES application where accounts are provisioned rather than self-registered.
 
-## Version 2 Improvements
+## API Overview
 
-Version 2 turns the original MVP into a more practical portfolio project:
+| Method | Endpoint | Notes |
+|---|---|---|
+| `POST` | `/api/Auth/login` | Returns a JWT; authentication is not required |
+| `GET` | `/api/Machines?Page=1&PageSize=10&Keyword=cnc&Status=Running` | Server-side pagination; `Keyword` and `Status` are optional |
+| `GET` | `/api/Machines/{id}` | Returns one machine |
+| `POST` | `/api/Machines` | Creates a machine |
+| `PUT` | `/api/Machines/{id}` | Updates a machine and writes a status log only when status changes |
+| `DELETE` | `/api/Machines/{id}` | Deletes a machine |
+| `GET` | `/api/Machines/{id}/status-logs` | Returns status-change history for one machine |
 
-- Moved JWT secret out of `appsettings.json`
-- Added `User` entity and `Users` table
-- Added password hashing with `PasswordHasher<User>`
-- Replaced fixed `admin / password` login with database login
-- Added DTO validation
-- Added global error handling middleware
-- Added paged machine query API
-- Added search and status filtering
-- Added Angular route guards
-- Added 401 handling in the auth interceptor
-- Added frontend operation loading, success, and error feedback
-- Cleaned up template code and project documentation
+All `/api/Machines/*` endpoints require:
+
+```http
+Authorization: Bearer <token>
+```
+
+Supported machine statuses:
+
+```text
+Idle
+Running
+Down
+Maintenance
+```
+
+DTO validation rejects unsupported status values on write requests.
 
 ## Testing
 
-The backend includes service-level tests for `MachineService`.
+The backend includes service-level tests for business behavior and API integration tests for the real ASP.NET Core request pipeline.
 
-Covered behaviors:
-
-- pagination
-- keyword search
-- status filtering
-- create machine
-- get machine by id
-- delete machine
-- status transition logging
-
-Run all .NET tests:
+Run the complete .NET test suite from the repository root:
 
 ```bash
 dotnet test MesEquipment.sln
 ```
 
-The service tests use the EF Core InMemory database, so they can run without MySQL or Docker.
-During Version 3, a regression test was added for machine status transitions.
-The test caught a bug where MachineStatusLog was created but not persisted to
-the database. The service was updated to persist the status log when a machine
-status changes.
-The backend also includes API integration tests using WebApplicationFactory.
-Covered API behaviors:
+### Service-level coverage
 
-- protected machine endpoints return 401 without a JWT
-- login returns a JWT token for valid credentials
-- authorized machine list requests return paged data
-- invalid machine DTOs return 400 Bad Request through ASP.NET Core validation
-  The integration tests replace the MySQL DbContext configuration with the EF Core
-  InMemory database and use test-specific JWT settings.
+`MachineServiceTests.cs` covers:
 
-## CI
+- server-side pagination
+- keyword search
+- status filtering
+- machine creation
+- retrieving a machine by ID
+- updating a machine
+- deleting a machine
+- writing a status-history entry when status changes
+- avoiding a status-history entry when status does not change
 
-This project uses GitHub Actions to run backend tests and frontend builds on
-pushes and pull requests to `main`.
+The status-history tests protect a real regression. An earlier implementation of `MachineService.UpdateAsync` constructed a `MachineStatusLog` object but did not add it to the `DbContext`, so the history record was never persisted. The regression pair now verifies both sides of the rule: a status change must create a log, while an unrelated update must not.
 
-CI checks:
+### API integration coverage
 
-- backend restore, build, and test
-- frontend dependency installation with `npm ci`
-- frontend production build
+`AuthApiTests.cs` and `MachinesApiTests.cs` use `WebApplicationFactory` to exercise the application through HTTP rather than calling controllers directly.
 
-## API Overview
+Coverage includes:
 
-### Auth
+- a protected machine endpoint returns `401 Unauthorized` without a token
+- valid credentials return a JWT
+- an authenticated machine-list request returns paged data
+- an invalid machine DTO returns `400 Bad Request`
+- ASP.NET Core authentication and validation run through the actual middleware pipeline
+
+The integration-test host replaces the MySQL configuration with the EF Core InMemory provider and uses test-specific JWT settings, so tests do not require Docker or a running MySQL instance.
+
+## Continuous Integration
+
+GitHub Actions runs on pushes and pull requests to `main`.
+
+The backend job:
 
 ```text
-POST /api/Auth/login
+Restore dependencies
+Build the solution
+Run dotnet test
 ```
 
-### Machines
+The frontend job:
 
 ```text
-GET    /api/Machines?page=1&pageSize=10&keyword=cnc&status=Running
-GET    /api/Machines/{id}
-POST   /api/Machines
-PUT    /api/Machines/{id}
-DELETE /api/Machines/{id}
-GET    /api/Machines/{id}/status-logs
+Install dependencies with npm ci
+Run the Angular production build
+```
+
+Workflow configuration:
+
+```text
+.github/workflows/ci.yml
+```
+
+The CI badge at the top of this README reflects the current workflow result.
+
+## Design Decisions
+
+### ASP.NET Core Web API instead of MVC
+
+The frontend is an independent Angular SPA, so the backend exposes HTTP APIs rather than server-rendered views. This keeps presentation concerns in Angular and request, business, and persistence concerns in ASP.NET Core.
+
+### DTOs instead of exposing EF Core entities
+
+Controllers accept and return DTOs rather than database entities. The API contract can therefore evolve independently from persistence details, and request validation stays at the boundary instead of being spread across controllers and services.
+
+### Service layer for business behavior
+
+Controllers handle HTTP concerns. `MachineService` owns querying, persistence, and status-history rules. Keeping status-change logging in the service makes the rule testable without depending on a controller or browser workflow.
+
+### Generated client instead of hand-written TypeScript contracts
+
+Maintaining backend DTOs and TypeScript interfaces separately creates two sources of truth. NSwag generates the Angular client from the OpenAPI contract, turning contract drift into a build-time failure.
+
+### Adapter and mapper around generated code
+
+Generated code is infrastructure, not the frontend domain model. `MachineService` and `machine-api.mapper.ts` prevent generated DTOs and client behavior from spreading through components and NgRx effects. Regenerating the client therefore has a smaller impact on the application.
+
+### NgRx for shared query state
+
+Pagination, filters, loading, errors, and returned records form one shared query state used across the machine-list UI. NgRx coordinates that state and its asynchronous loading flow. One-off create, update, and delete feedback remains local to the component through Signals.
+
+### Narrow global exception handling
+
+The exception middleware converts unhandled exceptions into a consistent `ProblemDetails` response. It does not replace built-in framework behavior: DTO validation still produces `400` responses, and authentication still produces `401` responses.
+
+### User Secrets for local development
+
+The JWT signing key does not belong in source control. .NET User Secrets keeps it outside tracked configuration during local development. Deployment environments should use environment variables or a managed secret store instead.
+
+## Project Structure
+
+```text
+project-root/
+├── MesEquipment.sln
+├── backend/
+│   ├── MesEquipment.Api/
+│   │   ├── Controllers/
+│   │   ├── Data/
+│   │   ├── DTOs/
+│   │   ├── Middleware/
+│   │   ├── Models/
+│   │   └── Services/
+│   └── MesEquipment.Api.Tests/
+│       ├── Integration/
+│       └── Services/
+├── MesEquipment.Web/
+│   └── src/app/
+│       ├── adapters/
+│       │   └── machine-api.mapper.ts
+│       ├── api/
+│       │   └── mes-equipment-api.ts
+│       ├── guards/
+│       ├── models/
+│       ├── pages/
+│       ├── services/
+│       └── store/machines/
+├── .config/
+│   └── dotnet-tools.json
+├── .github/workflows/
+│   └── ci.yml
+├── .env.example
+├── docker-compose.yml
+└── nswag.json
 ```
 
 ## Demo Script
 
-1. Sign in with the demo account.
-2. Show that `/machines` is protected by the route guard.
-3. Load the machine list through NgRx.
-4. Search, filter by status, and change pages.
-5. Create, update, and delete a machine.
-6. Show frontend loading, success, and error feedback.
-7. Explain that the backend uses DTO validation and global error handling.
-8. Explain that JWT secrets are kept out of `appsettings.json` for local development.
+1. Open `/machines` while logged out and show the route guard redirecting to `/login`.
+2. Sign in with the demo account.
+3. Search by keyword, filter by status, and change pages.
+4. Create a machine.
+5. Update the machine without changing its status.
+6. Update the machine again and change its status.
+7. Call `GET /api/Machines/{id}/status-logs` in Swagger and show the new history record.
+8. Delete the machine and point out the local loading, success, and error feedback.
+9. Run `dotnet test MesEquipment.sln`.
+10. Open the GitHub Actions workflow and show the backend tests and Angular build passing on the same commit.
 
-## Notes
+## Engineering Scope
 
-- Frontend route guards improve user experience, but backend `[Authorize]`
-  remains the real security boundary.
-- User Secrets are for local development only.
-- The project intentionally uses a simple demo admin seed instead of a public
-  registration flow because MES systems are usually internal business tools.
+This repository is a portfolio-scale vertical slice through equipment management: Angular UI, state management, generated API integration, authentication, backend services, persistence, validation, error handling, automated tests, and CI.
+
+It is not presented as a complete enterprise MES. A production system would also require concerns such as organization-level identity and access management, role-based permissions, audit and compliance controls, equipment communication protocols, event-driven integration, observability, deployment automation, high availability, backup and recovery, and multi-site support.
+
+Those concerns remain outside the current scope so the implemented workflow stays clear, runnable, and testable.

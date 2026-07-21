@@ -5,7 +5,7 @@ using MesEquipment.Api.DTOs;
 using MesEquipment.Api.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
-
+using MesEquipment.Api.Authorization;
 namespace MesEquipment.Api.Tests.Integration;
 
 public class AuthApiTests
@@ -23,6 +23,7 @@ public class AuthApiTests
             var user = new User
             {
                 Username = "admin",
+                Role = AppRoles.Administrator,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -47,5 +48,6 @@ public class AuthApiTests
         Assert.NotNull(loginResponse);
         Assert.False(string.IsNullOrWhiteSpace(loginResponse.Token));
         Assert.Equal("admin", loginResponse.Username);
+        Assert.Equal(AppRoles.Administrator, loginResponse.Role);
     }
 }

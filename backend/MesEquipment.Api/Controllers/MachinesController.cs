@@ -5,6 +5,7 @@ using MesEquipment.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
+using MesEquipment.Api.Authorization;
 
 namespace MesEquipment.Api.Controllers;
 
@@ -21,6 +22,7 @@ public class MachinesController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Policy = AuthorizationPolicies.CanReadMachines)]
     public async Task<ActionResult<PagedResultDto<MachineDto>>> GetMachines(
         [FromQuery] MachineQueryDto query)
     {
@@ -28,6 +30,7 @@ public class MachinesController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [Authorize(Policy = AuthorizationPolicies.CanReadMachines)]
     public async Task<ActionResult<MachineDto>> GetMachine(int id)
     {
         var machine = await _machineService.GetByIdAsync(id);
@@ -41,6 +44,7 @@ public class MachinesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = AuthorizationPolicies.CanCreateMachines)]
     public async Task<ActionResult<MachineDto>> CreateMachine(CreateMachineDto dto)
     {
         var machine = await _machineService.CreateAsync(dto);
@@ -49,6 +53,7 @@ public class MachinesController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Policy = AuthorizationPolicies.CanUpdateMachines)]
     public async Task<IActionResult> UpdateMachine(int id, UpdateMachineDto dto)
     {
         var updated = await _machineService.UpdateAsync(id, dto);
@@ -62,6 +67,7 @@ public class MachinesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Policy = AuthorizationPolicies.CanDeleteMachines)]
     public async Task<IActionResult> DeleteMachine(int id)
     {
         var deleted = await _machineService.DeleteAsync(id);
@@ -75,6 +81,7 @@ public class MachinesController : ControllerBase
     }
     
     [HttpGet("{id}/status-logs")]
+    [Authorize(Policy = AuthorizationPolicies.CanReadMachines)]
     public async Task<ActionResult<IEnumerable<MachineStatusLogDto>>> GetMachineStatusLogs(int id)
     {
         var logs = await _machineService.GetStatusLogsAsync(id);

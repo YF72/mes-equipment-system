@@ -8,6 +8,8 @@ using MesEquipment.Api.Models;
 using Microsoft.AspNetCore.Identity;
 using MesEquipment.Api.Middleware;
 using Microsoft.AspNetCore.Mvc.Controllers;
+using System.Security.Claims;
+using MesEquipment.Api.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 const string corsPolicyName = "AllowAngularApp";
@@ -54,11 +56,44 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateLifetime = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            NameClaimType = ClaimTypes.Name,
+            RoleClaimType = ClaimTypes.Role,
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(
+        AuthorizationPolicies.CanReadMachines,
+        policy => policy.RequireRole(
+            AppRoles.Administrator,
+            AppRoles.EquipmentEngineer,
+            AppRoles.EquipmentManager,
+            AppRoles.QualityEngineer,
+            AppRoles.Engineering,
+            AppRoles.ProcessIntegrationEngineer));
+
+    options.AddPolicy(
+        AuthorizationPolicies.CanCreateMachines,
+        policy => policy.RequireRole(
+            AppRoles.Administrator,
+            AppRoles.EquipmentEngineer));
+
+    options.AddPolicy(
+        AuthorizationPolicies.CanUpdateMachines,
+        policy => policy.RequireRole(
+            AppRoles.Administrator,
+            AppRoles.EquipmentEngineer,
+            AppRoles.Engineering,
+            AppRoles.ProcessIntegrationEngineer));
+
+    options.AddPolicy(
+        AuthorizationPolicies.CanDeleteMachines,
+        policy => policy.RequireRole(
+            AppRoles.Administrator,
+            AppRoles.EquipmentEngineer));
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -83,7 +118,7 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
-    await DbSeeder.SeedAdminUserAsync(app.Services);
+    await DbSeeder.SeedDevelopmentUsersAsync(app.Services);
     
 }
 app.UseCors(corsPolicyName);

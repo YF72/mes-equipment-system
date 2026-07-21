@@ -56,7 +56,8 @@ public class AuthController : ControllerBase
         return new LoginResponseDto
         {
             Token = token,
-            Username = user.Username
+            Username = user.Username,
+            Role = user.Role
         };
     }
 
@@ -75,7 +76,8 @@ public class AuthController : ControllerBase
         var claims = new[]
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Name, user.Username)
+            new Claim(ClaimTypes.Name, user.Username),
+            new Claim(ClaimTypes.Role, user.Role)
         };
 
         var token = new JwtSecurityToken(

@@ -25,6 +25,9 @@ public class AppDbContext : DbContext
             entity.HasIndex(user => user.Username).IsUnique();
             entity.Property(user => user.Username).HasMaxLength(100).IsRequired();
             entity.Property(user => user.PasswordHash).HasMaxLength(500).IsRequired();
+            entity.Property(user => user.Role)
+                .HasMaxLength(50)
+                .IsRequired();
         });
     }
 }

@@ -1,7 +1,11 @@
 <section class="mx-auto max-w-7xl px-6 py-8">
-  <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+  <div
+    class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
+  >
     <div>
-      <p class="text-xs font-bold uppercase text-slate-500">Equipment Operations</p>
+      <p class="text-xs font-bold uppercase text-slate-500">
+        Equipment Operations
+      </p>
       <h1 class="mt-2 text-3xl font-bold text-slate-950">Machine Management</h1>
       <p class="mt-2 text-sm text-slate-600">
         Manage production equipment, current status, and operational records.
@@ -17,6 +21,7 @@
     </button>
   </div>
 
+  @if (canCreateMachine() || (editingId() !== null && canUpdateMachine())) {
   <form
     class="mb-6 rounded-lg bg-white p-5 shadow-sm ring-1 ring-slate-200"
     (ngSubmit)="saveMachine()"
@@ -27,9 +32,11 @@
       </h2>
 
       @if (editingId() !== null) {
-        <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-          Editing
-        </span>
+      <span
+        class="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700"
+      >
+        Editing
+      </span>
       }
     </div>
 
@@ -85,21 +92,22 @@
         class="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
         [disabled]="saving()"
       >
-        {{ saving() ? 'Saving...' : editingId() === null ? 'Create' : 'Update' }}
+        {{ saving() ? 'Saving...' : editingId() === null ? 'Create' : 'Update'
+        }}
       </button>
 
       @if (editingId() !== null) {
-        <button
-          type="button"
-          class="inline-flex items-center justify-center rounded-md bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200"
-          (click)="resetForm()"
-        >
-          Cancel
-        </button>
+      <button
+        type="button"
+        class="inline-flex items-center justify-center rounded-md bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200"
+        (click)="resetForm()"
+      >
+        Cancel
+      </button>
       }
     </div>
   </form>
-
+  }
   <form
     class="mb-6 rounded-lg bg-white p-5 shadow-sm ring-1 ring-slate-200"
     [formGroup]="filterForm"
@@ -151,159 +159,169 @@
   </form>
 
   @if (successMessage()) {
-    <div
-      class="mb-4 rounded-lg bg-green-50 p-4 text-sm font-semibold text-green-700 ring-1 ring-green-100"
-    >
-      {{ successMessage() }}
-    </div>
-  }
+  <div
+    class="mb-4 rounded-lg bg-green-50 p-4 text-sm font-semibold text-green-700 ring-1 ring-green-100"
+  >
+    {{ successMessage() }}
+  </div>
+  } @if (operationError()) {
+  <div
+    class="mb-4 rounded-lg bg-red-50 p-4 text-sm font-semibold text-red-700 ring-1 ring-red-100"
+  >
+    {{ operationError() }}
+  </div>
+  } @if (loading$ | async) {
+  <div
+    class="rounded-lg bg-white p-5 text-sm text-slate-600 shadow-sm ring-1 ring-slate-200"
+  >
+    Loading machines...
+  </div>
+  } @if (errorMessage$ | async; as errorMessage) { @if (errorMessage) {
+  <div
+    class="rounded-lg bg-red-50 p-4 text-sm font-semibold text-red-700 ring-1 ring-red-100"
+  >
+    {{ errorMessage }}
+  </div>
+  } } @if (machines$ | async; as machines) { @if (!(loading$ | async) &&
+  !(errorMessage$ | async)) {
+  <div
+    class="overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200"
+  >
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-200 text-sm">
+        <thead class="bg-slate-50">
+          <tr>
+            <th class="px-4 py-3 text-left font-bold text-slate-600">Code</th>
+            <th class="px-4 py-3 text-left font-bold text-slate-600">Name</th>
+            <th class="px-4 py-3 text-left font-bold text-slate-600">
+              Location
+            </th>
+            <th class="px-4 py-3 text-left font-bold text-slate-600">Status</th>
+            <th class="px-4 py-3 text-left font-bold text-slate-600">
+              Created At
+            </th>
+            @if (canUpdateMachine() || canDeleteMachine()) {
+            <th class="px-4 py-3 text-left font-bold text-slate-600">
+              Actions
+            </th>
+            }
+          </tr>
+        </thead>
 
-  @if (operationError()) {
-    <div
-      class="mb-4 rounded-lg bg-red-50 p-4 text-sm font-semibold text-red-700 ring-1 ring-red-100"
-    >
-      {{ operationError() }}
-    </div>
-  }
-
-  @if (loading$ | async) {
-    <div class="rounded-lg bg-white p-5 text-sm text-slate-600 shadow-sm ring-1 ring-slate-200">
-      Loading machines...
-    </div>
-  }
-
-  @if (errorMessage$ | async; as errorMessage) {
-    @if (errorMessage) {
-      <div class="rounded-lg bg-red-50 p-4 text-sm font-semibold text-red-700 ring-1 ring-red-100">
-        {{ errorMessage }}
-      </div>
-    }
-  }
-
-  @if (machines$ | async; as machines) {
-    @if (!(loading$ | async) && !(errorMessage$ | async)) {
-      <div class="overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200">
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-slate-200 text-sm">
-            <thead class="bg-slate-50">
-              <tr>
-                <th class="px-4 py-3 text-left font-bold text-slate-600">Code</th>
-                <th class="px-4 py-3 text-left font-bold text-slate-600">Name</th>
-                <th class="px-4 py-3 text-left font-bold text-slate-600">Location</th>
-                <th class="px-4 py-3 text-left font-bold text-slate-600">Status</th>
-                <th class="px-4 py-3 text-left font-bold text-slate-600">Created At</th>
-                <th class="px-4 py-3 text-left font-bold text-slate-600">Actions</th>
-              </tr>
-            </thead>
-
-            <tbody class="divide-y divide-slate-100 bg-white">
-              @for (machine of machines; track machine.id) {
-                <tr class="hover:bg-slate-50">
-                  <td class="whitespace-nowrap px-4 py-3 font-semibold text-slate-950">
-                    {{ machine.code }}
-                  </td>
-                  <td class="whitespace-nowrap px-4 py-3 text-slate-700">
-                    {{ machine.name }}
-                  </td>
-                  <td class="whitespace-nowrap px-4 py-3 text-slate-700">
-                    {{ machine.location }}
-                  </td>
-                  <td class="whitespace-nowrap px-4 py-3">
-                    <span
-                      class="inline-flex rounded-full px-2.5 py-1 text-xs font-bold"
-                      [class.bg-green-50]="machine.status === 'Running'"
-                      [class.text-green-700]="machine.status === 'Running'"
-                      [class.bg-slate-100]="machine.status === 'Idle'"
-                      [class.text-slate-700]="machine.status === 'Idle'"
-                      [class.bg-red-50]="machine.status === 'Down'"
-                      [class.text-red-700]="machine.status === 'Down'"
-                      [class.bg-amber-50]="machine.status === 'Maintenance'"
-                      [class.text-amber-700]="machine.status === 'Maintenance'"
-                    >
-                      {{ machine.status }}
-                    </span>
-                  </td>
-                  <td class="whitespace-nowrap px-4 py-3 text-slate-600">
-                    {{ machine.createdAt | date: 'yyyy-MM-dd HH:mm' }}
-                  </td>
-                  <td class="whitespace-nowrap px-4 py-3">
-                    <div class="flex gap-2">
-                      <button
-                        type="button"
-                        class="rounded-md bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200"
-                        (click)="editMachine(machine)"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        class="rounded-md bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
-                        [disabled]="deletingId() === machine.id"
-                        (click)="deleteMachine(machine)"
-                      >
-                        {{ deletingId() === machine.id ? 'Deleting...' : 'Delete' }}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-
-        @if (machines.length === 0) {
-          <div class="border-t border-slate-100 px-4 py-8 text-center text-sm text-slate-500">
-            No machines found. Create your first machine above.
-          </div>
-        }
-
-        @if (pagination$ | async; as pagination) {
-          <div
-            class="flex flex-col gap-3 border-t border-slate-100 px-4 py-4 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div>
-              Showing {{ machines.length }} of {{ pagination.totalCount }} machines · Page
-              {{ pagination.page }} of {{ pagination.totalPages }}
-            </div>
-
-            <div class="flex items-center gap-3">
-              <label class="flex items-center gap-2">
-                Page size
-                <select
-                  name="pageSize"
-                  class="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
-                  [ngModel]="filterForm.controls.pageSize.value"
-                  [ngModelOptions]="{ standalone: true }"
-                  (ngModelChange)="changePageSize($event)"
+        <tbody class="divide-y divide-slate-100 bg-white">
+          @for (machine of machines; track machine.id) {
+          <tr class="hover:bg-slate-50">
+            <td
+              class="whitespace-nowrap px-4 py-3 font-semibold text-slate-950"
+            >
+              {{ machine.code }}
+            </td>
+            <td class="whitespace-nowrap px-4 py-3 text-slate-700">
+              {{ machine.name }}
+            </td>
+            <td class="whitespace-nowrap px-4 py-3 text-slate-700">
+              {{ machine.location }}
+            </td>
+            <td class="whitespace-nowrap px-4 py-3">
+              <span
+                class="inline-flex rounded-full px-2.5 py-1 text-xs font-bold"
+                [class.bg-green-50]="machine.status === 'Running'"
+                [class.text-green-700]="machine.status === 'Running'"
+                [class.bg-slate-100]="machine.status === 'Idle'"
+                [class.text-slate-700]="machine.status === 'Idle'"
+                [class.bg-red-50]="machine.status === 'Down'"
+                [class.text-red-700]="machine.status === 'Down'"
+                [class.bg-amber-50]="machine.status === 'Maintenance'"
+                [class.text-amber-700]="machine.status === 'Maintenance'"
+              >
+                {{ machine.status }}
+              </span>
+            </td>
+            <td class="whitespace-nowrap px-4 py-3 text-slate-600">
+              {{ machine.createdAt | date: 'yyyy-MM-dd HH:mm' }}
+            </td>
+            @if (canUpdateMachine() || canDeleteMachine()) {
+            <td class="whitespace-nowrap px-4 py-3">
+              <div class="flex gap-2">
+                @if (canUpdateMachine()) {
+                <button
+                  type="button"
+                  class="rounded-md bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200"
+                  (click)="editMachine(machine)"
                 >
-                  <option [ngValue]="5">5</option>
-                  <option [ngValue]="10">10</option>
-                  <option [ngValue]="20">20</option>
-                  <option [ngValue]="50">50</option>
-                </select>
-              </label>
+                  Edit
+                </button>
+                } @if (canDeleteMachine()) {
+                <button
+                  type="button"
+                  class="rounded-md bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  [disabled]="deletingId() === machine.id"
+                  (click)="deleteMachine(machine)"
+                >
+                  {{ deletingId() === machine.id ? 'Deleting...' : 'Delete' }}
+                </button>
+                }
+              </div>
+            </td>
+            }
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
 
-              <button
-                type="button"
-                class="rounded-md bg-slate-100 px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-200 disabled:opacity-50"
-                [disabled]="pagination.page <= 1"
-                (click)="goToPreviousPage(pagination.page)"
-              >
-                Previous
-              </button>
-
-              <button
-                type="button"
-                class="rounded-md bg-slate-100 px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-200 disabled:opacity-50"
-                [disabled]="pagination.page >= pagination.totalPages"
-                (click)="goToNextPage(pagination.page, pagination.totalPages)"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        }
+    @if (machines.length === 0) {
+    <div
+      class="border-t border-slate-100 px-4 py-8 text-center text-sm text-slate-500"
+    >
+      No machines found.
+    </div>
+    } @if (pagination$ | async; as pagination) {
+    <div
+      class="flex flex-col gap-3 border-t border-slate-100 px-4 py-4 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between"
+    >
+      <div>
+        Showing {{ machines.length }} of {{ pagination.totalCount }} machines ·
+        Page {{ pagination.page }} of {{ pagination.totalPages }}
       </div>
+
+      <div class="flex items-center gap-3">
+        <label class="flex items-center gap-2">
+          Page size
+          <select
+            name="pageSize"
+            class="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+            [ngModel]="filterForm.controls.pageSize.value"
+            [ngModelOptions]="{ standalone: true }"
+            (ngModelChange)="changePageSize($event)"
+          >
+            <option [ngValue]="5">5</option>
+            <option [ngValue]="10">10</option>
+            <option [ngValue]="20">20</option>
+            <option [ngValue]="50">50</option>
+          </select>
+        </label>
+
+        <button
+          type="button"
+          class="rounded-md bg-slate-100 px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-200 disabled:opacity-50"
+          [disabled]="pagination.page <= 1"
+          (click)="goToPreviousPage(pagination.page)"
+        >
+          Previous
+        </button>
+
+        <button
+          type="button"
+          class="rounded-md bg-slate-100 px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-200 disabled:opacity-50"
+          [disabled]="pagination.page >= pagination.totalPages"
+          (click)="goToNextPage(pagination.page, pagination.totalPages)"
+        >
+          Next
+        </button>
+      </div>
+    </div>
     }
-  }
+  </div>
+  } }
 </section>

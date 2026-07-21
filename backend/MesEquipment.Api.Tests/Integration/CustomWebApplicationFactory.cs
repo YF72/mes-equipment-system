@@ -11,6 +11,8 @@ namespace MesEquipment.Api.Tests.Integration;
 
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
+    private readonly string _databaseName =
+    $"MesEquipmentApiIntegrationTests-{Guid.NewGuid()}";
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
@@ -32,7 +34,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             services.AddDbContext<AppDbContext>(options =>
             {
-                options.UseInMemoryDatabase("MesEquipmentApiIntegrationTests");
+                options.UseInMemoryDatabase(_databaseName);
             });
         });
     }

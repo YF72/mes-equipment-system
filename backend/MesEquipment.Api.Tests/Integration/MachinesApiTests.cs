@@ -6,6 +6,7 @@ using MesEquipment.Api.DTOs;
 using MesEquipment.Api.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
+using MesEquipment.Api.Authorization;
 
 namespace MesEquipment.Api.Tests.Integration;
 
@@ -35,6 +36,7 @@ public class MachinesApiTests
             var user = new User
             {
                 Username = "admin",
+                Role = AppRoles.Administrator,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -104,6 +106,7 @@ public class MachinesApiTests
             var user = new User
             {
                 Username = "admin-validation",
+                Role = AppRoles.Administrator,
                 CreatedAt = DateTime.UtcNow
             };
 

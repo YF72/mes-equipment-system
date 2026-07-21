@@ -22,7 +22,7 @@ The backend OpenAPI contract generates the Angular API client through NSwag. Aft
 - [Architecture](#architecture)
 - [Request Flow](#request-flow)
 - [Local Setup](#local-setup)
-- [Demo Account](#demo-account)
+- [Demo Accounts](#demo-accounts)
 - [API Overview](#api-overview)
 - [Testing](#testing)
 - [Continuous Integration](#continuous-integration)
@@ -36,9 +36,9 @@ The backend OpenAPI contract generates the Angular API client through NSwag. Aft
 - **Equipment workflows** — machine CRUD, server-side pagination, keyword search, status filtering, and per-machine status history
 - **Contract-driven integration** — Angular API client generated from the live backend OpenAPI contract with NSwag
 - **Clear frontend boundary** — generated clients are wrapped by `MachineService`, while `machine-api.mapper.ts` converts transport DTOs into application models
-- **Database-backed authentication** — JWT login with hashed passwords, protected API endpoints, route guards, and centralized frontend 401 handling
+- **Role-based access control** — database-backed users, hashed passwords, JWT role claims, backend authorization policies, Angular role-aware controls, route guards, and centralized frontend 401 handling
 - **Consistent API behavior** — DTO validation at the request boundary and unhandled exceptions returned as `ProblemDetails`
-- **Automated verification** — service-level tests, API integration tests through `WebApplicationFactory`, and GitHub Actions on every push and pull request
+- **Automated verification** — service-level tests, API integration tests through `WebApplicationFactory`, and GitHub Actions for pushes and pull requests targeting `main`
 
 Machine status history is recorded only when the status actually changes. Updating another field does not create a duplicate `MachineStatusLog` entry.
 
@@ -58,14 +58,14 @@ Machine status history is recorded only when the status actually changes. Updati
 
 ## Tech Stack
 
-| Layer | Technologies |
-|---|---|
-| Backend | .NET 9, ASP.NET Core Web API, C#, Entity Framework Core 9, MySQL 8.4 through Pomelo |
-| Authentication | JWT Bearer authentication, `PasswordHasher<User>`, .NET User Secrets |
-| API | DTO and Service layers, DataAnnotations validation, `ProblemDetails`, Swagger/OpenAPI, NSwag 14 |
-| Frontend | Angular 21.2, TypeScript 5.9, NgRx 21.1, Angular Signals, Reactive Forms, Tailwind CSS 4 |
-| Testing | xUnit, EF Core InMemory provider, `WebApplicationFactory` |
-| Infrastructure | Docker Compose, GitHub Actions |
+| Layer          | Technologies                                                                                                      |
+| -------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Backend        | .NET 9, ASP.NET Core Web API, C#, Entity Framework Core 9, MySQL 8.4 through Pomelo                               |
+| Authentication | JWT Bearer authentication, `PasswordHasher<User>`, .NET User Secrets, JWT role claims, policy-based authorization |
+| API            | DTO and Service layers, DataAnnotations validation, `ProblemDetails`, Swagger/OpenAPI, NSwag 14                   |
+| Frontend       | Angular 21.2, TypeScript 5.9, NgRx 21.1, Angular Signals, Reactive Forms, Tailwind CSS 4                          |
+| Testing        | xUnit, EF Core InMemory provider, `WebApplicationFactory`                                                         |
+| Infrastructure | Docker Compose, GitHub Actions                                                                                    |
 
 ## Architecture
 
@@ -232,32 +232,51 @@ npm start
 App: http://localhost:4200
 ```
 
-## Demo Account
+## Demo Accounts
 
-```text
-Username: admin
-Password: password
-```
+The following accounts are seeded only in the Development environment:
 
-`DbSeeder` creates the demo account on startup in the Development environment. Public registration is intentionally excluded because this project models an internal MES application where accounts are provisioned rather than self-registered.
+| Username     | Password   | Role                         | Machine permissions          |
+| ------------ | ---------- | ---------------------------- | ---------------------------- |
+| `admin`      | `password` | Administrator                | Read, create, update, delete |
+| `ee`         | `password` | Equipment Engineer           | Read, create, update, delete |
+| `ee.manager` | `password` | Equipment Manager            | Read                         |
+| `quality`    | `password` | Quality Engineer             | Read                         |
+| `eng`        | `password` | Engineering                  | Read, update                 |
+| `pei`        | `password` | Process Integration Engineer | Read, update                 |
+
+`DbSeeder` creates these demo accounts on startup in the Development environment. Public registration is intentionally excluded because this project models an internal MES application where accounts are provisioned rather than self-registered.
 
 ## API Overview
 
-| Method | Endpoint | Notes |
-|---|---|---|
-| `POST` | `/api/Auth/login` | Returns a JWT; authentication is not required |
-| `GET` | `/api/Machines?Page=1&PageSize=10&Keyword=cnc&Status=Running` | Server-side pagination; `Keyword` and `Status` are optional |
-| `GET` | `/api/Machines/{id}` | Returns one machine |
-| `POST` | `/api/Machines` | Creates a machine |
-| `PUT` | `/api/Machines/{id}` | Updates a machine and writes a status log only when status changes |
-| `DELETE` | `/api/Machines/{id}` | Deletes a machine |
-| `GET` | `/api/Machines/{id}/status-logs` | Returns status-change history for one machine |
+| Method   | Endpoint                                                      | Notes                                                              |
+| -------- | ------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `POST`   | `/api/Auth/login`                                             | Returns a JWT; authentication is not required                      |
+| `GET`    | `/api/Machines?Page=1&PageSize=10&Keyword=cnc&Status=Running` | Server-side pagination; `Keyword` and `Status` are optional        |
+| `GET`    | `/api/Machines/{id}`                                          | Returns one machine                                                |
+| `POST`   | `/api/Machines`                                               | Creates a machine                                                  |
+| `PUT`    | `/api/Machines/{id}`                                          | Updates a machine and writes a status log only when status changes |
+| `DELETE` | `/api/Machines/{id}`                                          | Deletes a machine                                                  |
+| `GET`    | `/api/Machines/{id}/status-logs`                              | Returns status-change history for one machine                      |
 
 All `/api/Machines/*` endpoints require:
 
 ```http
 Authorization: Bearer <token>
 ```
+
+Machine endpoint permissions are enforced by backend authorization policies:
+
+| Role                         | Read | Create | Update | Delete |
+| ---------------------------- | ---- | ------ | ------ | ------ |
+| Administrator                | Yes  | Yes    | Yes    | Yes    |
+| Equipment Engineer           | Yes  | Yes    | Yes    | Yes    |
+| Equipment Manager            | Yes  | No     | No     | No     |
+| Quality Engineer             | Yes  | No     | No     | No     |
+| Engineering                  | Yes  | No     | Yes    | No     |
+| Process Integration Engineer | Yes  | No     | Yes    | No     |
+
+The Angular UI hides unavailable actions for usability, but backend authorization policies remain the security boundary.
 
 Supported machine statuses:
 
@@ -298,17 +317,21 @@ The status-history tests protect a real regression. An earlier implementation of
 
 ### API integration coverage
 
-`AuthApiTests.cs` and `MachinesApiTests.cs` use `WebApplicationFactory` to exercise the application through HTTP rather than calling controllers directly.
+`AuthApiTests.cs`, `MachinesApiTests.cs`, and `MachineAuthorizationTests.cs` use `WebApplicationFactory` to exercise the application through HTTP rather than calling controllers directly.
 
 Coverage includes:
 
 - a protected machine endpoint returns `401 Unauthorized` without a token
-- valid credentials return a JWT
+- valid credentials return a JWT and the user's assigned role
 - an authenticated machine-list request returns paged data
 - an invalid machine DTO returns `400 Bad Request`
-- ASP.NET Core authentication and validation run through the actual middleware pipeline
+- a Quality user can read machines but receives `403 Forbidden` when creating one
+- an Engineering user can update machines but receives `403 Forbidden` when deleting one
+- ASP.NET Core authentication, authorization, and validation run through the actual middleware pipeline
 
 The integration-test host replaces the MySQL configuration with the EF Core InMemory provider and uses test-specific JWT settings, so tests do not require Docker or a running MySQL instance.
+
+Each `CustomWebApplicationFactory` instance uses a unique InMemory database name. This prevents users and machines created by one test from leaking into another test.
 
 ## Continuous Integration
 
@@ -378,6 +401,7 @@ project-root/
 ├── MesEquipment.sln
 ├── backend/
 │   ├── MesEquipment.Api/
+│   │   ├── Authorization/
 │   │   ├── Controllers/
 │   │   ├── Data/
 │   │   ├── DTOs/
@@ -424,6 +448,6 @@ project-root/
 
 This repository is a portfolio-scale vertical slice through equipment management: Angular UI, state management, generated API integration, authentication, backend services, persistence, validation, error handling, automated tests, and CI.
 
-It is not presented as a complete enterprise MES. A production system would also require concerns such as organization-level identity and access management, role-based permissions, audit and compliance controls, equipment communication protocols, event-driven integration, observability, deployment automation, high availability, backup and recovery, and multi-site support.
+It is not presented as a complete enterprise MES. A production system would also require concerns such as organization-level identity and access management, audit and compliance controls, equipment communication protocols, event-driven integration, observability, deployment automation, high availability, backup and recovery, and multi-site support.
 
 Those concerns remain outside the current scope so the implemented workflow stays clear, runnable, and testable.
